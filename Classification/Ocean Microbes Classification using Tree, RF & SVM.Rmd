@@ -1,0 +1,157 @@
+---
+title: "Ocean Microbes Classification with Decision Tree, Random Forest & SVM"
+author: "Dhanashree Pokale"
+date: "4/18/2017"
+output: html_document
+---
+
+
+
+
+This dataset contains a 21 minute sample from the vessel in a file seaflow_21min.csv. It is pre-processed to remove the calibration "beads" that are passed from the the system for monitoring, long with some other particle types.
+
+
+```{r}
+local({r <- getOption("repos");         
+r["CRAN"] <- "http://cran.r-project.org"; options(repos=r)})
+```
+
+The columns of this dataset are as follows:
+
+####file_id: The data arrives in files, where each file represents a three-minute window; this field represents which file the data came from. The number is ordered by time, but is otherwise not significant.
+####time: This is an integer representing the time the particle passed through the instrument. Many particles may arrive at the same time; time is not a key for this relation.
+####cell_id: A unique identifier for each cell WITHIN a file. (file_id, cell_id) is a key for this relation.
+####d1, d2: Intensity of light at the two main sensors, oriented perpendicularly. These sensors are primarily used to determine whether the particles are properly centered in the stream. Used primarily in preprocesssing; they are unlikely to be useful for classification.
+####fsc_small, fsc_perp, fsc_big: Forward scatter small, perpendicular, and big. These values help distingish different sizes of particles.
+####pe: A measurement of phycoerythrin fluorescence, which is related to the wavelength associated with an orange color in microorganisms
+####chl_small, chl_big: Measurements related to the wavelength of light corresponding to chlorophyll.
+####pop: This is the class label assigned by the clustering mechanism used in the production system. It can be considered "ground truth" for the purposes of the assignment, but note that there are particles that cannot be unambiguously classified, so you should not aim for 100% accuracy. The values in this column are crypto, nano, pico, synecho, and ultra
+
+# Read and Summarize Data
+
+```{r}
+#Read Dataset####
+myfile <- read.csv('https://raw.githubusercontent.com/uwescience/datasci_course_materials/master/assignment5/seaflow_21min.csv', header = TRUE, sep=',')
+```
+
+```{r}
+#Summarize Dataset####
+summary(myfile)
+```
+
+
+# Sampling dataset
+We split the dataset into two equal subsets-
+-one for training 
+-one for testing
+
+```{r}
+#Subset Dataset####
+set.seed(108685665)
+subset_indices = sample(nrow(myfile),nrow(myfile)*0.50)
+ocean_train = myfile[subset_indices,]
+ocean_test = myfile[-subset_indices,]
+```
+# Mean of the time in training dataset
+```{r}
+#Find mean of time in ocean training dataset####
+mean(ocean_train$time)
+```
+# Plot the graphs to check pe against chl_small and color by pop relationships
+```{r}
+library(ggplot2)
+qplot(pe, chl_small, data=ocean_train, geom=c("point", "smooth"), color = pop, main="chl_small per pe",
+      xlab="pe", ylab="chl_small")
+
+# observations (points) are overlayed and jittered
+hist(myfile$fsc_big)
+hist(myfile$chl_big)
+hist(myfile$fsc_perp)
+hist(myfile$chl_small)
+hist(myfile$fsc_small)
+```
+# Decision Tree modeling
+```{r}
+#Train a Decision Tree####
+library(rpart)
+fol <- formula(pop ~ fsc_small + fsc_perp + fsc_big + pe + chl_big + chl_small)
+model <- rpart(fol, method="class", data=ocean_train)
+print(model)  
+plot(model, uniform=TRUE, 
+     main="Classification Tree for Ocean Microbes")
+text(model, use.n=TRUE, all=TRUE, cex=.8)
+```
+
+# Prediction using Decision tree modeling
+```{r}
+#Predict using decision tree model####
+pred <- predict(model, newdata=ocean_test,type="class")
+table(ocean_test$pop, pred)
+mean(ocean_test$pop==pred)
+```
+
+# Random Forest modeling
+```{r}
+#Random Forest####
+library(randomForest) 
+model <- randomForest(fol, data=ocean_train)
+importance(model)
+```
+Random forests have the ability to generate an estimate of variable importance while training by rearranging the values in a particular variable & measuring its effect on classification. If the change of values has very less effect on the model's ability to make predictions, then we conclude that variable may not be that important.
+
+RF can have another estimate of variable importance based on the Gini impurity. Importance(model) function returns the mean decrease in Gini importance for every variable. The bigger the number, the more the Gini impurity score decreases by branching on this variable, suggesting that the variable is more important.
+
+# Prediction using Random Forest modeling
+```{r}
+#Predict using RF model####
+pred <- predict(model, newdata=ocean_test,type="class")
+table(ocean_test$pop, pred)
+mean(ocean_test$pop==pred)
+```
+
+# Support Vector Machine Modeling
+```{r}
+#Train model using support vector machine####
+library(e1071)
+model <- svm(fol, data=ocean_train)
+```
+# Predicting using SVM Model
+```{r}
+#Predict using SVM model####
+pred <- predict(model, newdata=ocean_test,type="class")
+table(ocean_test$pop, pred)
+mean(ocean_test$pop==pred)
+```
+
+# Performing checks to verify results
+```{r}
+#Sanity Check####
+qplot(time, chl_big, data=ocean_train, geom=c("point", "smooth"), color = pop, main="chl_small per pe",
+      xlab="time", ylab="chl_big")
+# Remove file 208
+mynewfile <-  subset(myfile, myfile$file_id != "208")
+nrow(mynewfile)
+```
+
+# After removing corrupt data rows; rerun models
+```{r}
+#Subset Dataset####
+set.seed(108685665)
+subset_new_indices = sample(nrow(mynewfile),nrow(mynewfile)*0.50)
+ocean_new_train = mynewfile[subset_new_indices,]
+ocean_new_test = mynewfile[-subset_new_indices,]
+
+#Train model using support vector machine####
+library(e1071)
+model_new <- svm(fol, data=ocean_new_train)
+
+#Predict using SVM model####
+prednew <- predict(model_new, newdata=ocean_new_test,type="class")
+table(ocean_new_test$pop, prednew)
+mean(ocean_new_test$pop==prednew)
+
+
+# net improvement in accuracy####
+x <- mean(ocean_new_test$pop==prednew) - mean(ocean_test$pop==pred)
+```
+
