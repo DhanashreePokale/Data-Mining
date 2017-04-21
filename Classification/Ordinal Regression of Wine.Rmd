@@ -2,16 +2,10 @@
 title: "Ordinal Regression on Wine"
 author: "Dhanashree Pokale"
 date: "4/19/2017"
-output:
-  html_document: default
-  pdf_document: default
+output: rmarkdown::github_document
 ---
 
-```{r, echo = FALSE}
-knitr::opts_chunk$set(
-  fig.path = "README_figs/README-"
-)
-```
+
 ### Aim of this project is to use ordinal regression technique to predict wine quality. The dataset used is from UCI Machine Learning Repository. 
 
 ### About data:
