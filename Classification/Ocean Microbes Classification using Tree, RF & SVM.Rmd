@@ -11,7 +11,7 @@ output: rmarkdown::github_document
 This dataset contains a 21 minute sample from the vessel in a file seaflow_21min.csv. It is pre-processed to remove the calibration "beads" that are passed from the the system for monitoring, long with some other particle types.
 
 
-```{r}
+```{r echo=FALSE}
 local({r <- getOption("repos");         
 r["CRAN"] <- "http://cran.r-project.org"; options(repos=r)})
 ```

@@ -5,11 +5,6 @@ Dhanashree Pokale
 
 This dataset contains a 21 minute sample from the vessel in a file seaflow\_21min.csv. It is pre-processed to remove the calibration "beads" that are passed from the the system for monitoring, long with some other particle types.
 
-``` r
-local({r <- getOption("repos");         
-r["CRAN"] <- "http://cran.r-project.org"; options(repos=r)})
-```
-
 The columns of this dataset are as follows:
 
 1.  file\_id: The data arrives in files, where each file represents a three-minute window; this field represents which file the data came from. The number is ordered by time, but is otherwise not significant.
